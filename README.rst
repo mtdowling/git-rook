@@ -90,35 +90,35 @@ Operation Modes
 
 Each of these options must appear first on the command line.
 
---install
+``--install``
     Installs ``git-rook`` hooks for a repository or git template.
 
---init
+``--init``
     Copies template-directory template into repo-directory and runs the
     post-init hook.
 
---run
+``--run``
     Runs a git hook
 
---list
+``--list``
     Lists hooks installed the <target-directory> (assumes current directory)
 
 
 Options for ``--install``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
--f, --force
+``-f, --force``
     Overwrites any existing hooks found in ``repo-directory`` or
     ``template-directory``
 
-<target-directory>
+``<target-directory>``
     Installs git hooks to the given ``target-directory``. The current directory
     is assumed if no ``target-directory`` is not provided.
 
     If ``target-directory`` contains a ``.git`` directory, hooks will be
     installed to ``<target-directory>/.git/hooks``. Otherwise,
     ``target-directory`` will be created and hooks will be installed to
-    ```<target-directory>/hooks``. This is useful for creating git templates.
+    ``<target-directory>/hooks``. This is useful for creating git templates.
 
 
 Examples
@@ -145,17 +145,17 @@ any existing hooks::
 Options for ``--init``
 ~~~~~~~~~~~~~~~~~~~~~~
 
--f, --force
+``-f, --force``
     Overwrites any existing hooks found in ``repo-directory`` or
     ``template-directory``
 
--n, --no-remember
+``-n, --no-remember``
     Prevent ``--init`` from remembering the ``--template`` by passing the
     ``-n`` option. ``--init`` will by default remember the provided
     ``--template`` by saving it in the ``init.templateDir`` git configuration
     value for the repo.
 
-<template-directory>
+``<template-directory>``
     Copies the contents of the provided template into the git repository. Any
     scripts found in the ``hooks/post-init.d/`` directory of the template will
     be executed. This value is optional if ``$GIT_TEMPLATE_DIR`` is set or the
@@ -183,10 +183,10 @@ Update an existing git repository with any changes made in a template::
 Options for ``--run``
 ~~~~~~~~~~~~~~~~~~~~~~
 
-<hook-name>
+``<hook-name>``
     Name of the hook to run
 
-<args>...
+``<args>...``
     Any arguments provided after the hook name will be forwarded to the hook
 
 
@@ -201,7 +201,7 @@ Run the ``post-init`` hook on demand::
 Options for ``--list``
 ~~~~~~~~~~~~~~~~~~~~~~
 
-<target-directory>
+``<target-directory>``
     Directory of a git repository or Git template.
 
 
