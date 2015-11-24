@@ -1,0 +1,415 @@
+.\" Man page generated from reStructuredText.
+.
+.TH GIT-ROOK  "" "" ""
+.SH NAME
+git-rook \- 
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.sp
+A git hook runner that can be used to execute multiple hooks in a git
+repository.
+.SH SYNOPSIS
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-install [\-f|\-\-force] [<target\-directory>]
+git rook \-\-init [\-f|\-\-force] [\-n|\-\-no\-remember] [<template\-directory>]
+git rook \-\-run <hook\-name> <hook\-args>...
+git rook \-\-list [<target\-directory>]
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SH DESCRIPTION
+.sp
+\fBgit\-rook\fP, (meaning r(un h)ook), is a git hook runner that allows you to
+execute multiple git hooks for the same action. By default, git hooks allow
+only a single script to be executed per action (e.g., \fBpre\-commit\fP,
+\fBcommit\-msg\fP, etc.).
+.sp
+\fBgit\-rook\fP installs the scripts necessary to enable you to execute
+multiple scripts per action by installing the \fBgit\-rook\fP hooks for a
+repository and then adding scripts to the hook\(aqs corresponding
+\fB<hook\-name>.d\fP directory.
+.sp
+For example, let\(aqs say we want to execute multiple hooks for the pre\-commit
+git hook. First we need to install \fBgit\-rook\fP hooks into the
+repository:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+cd /path/to/my/repo
+git rook \-\-install
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Produces the following output:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+✓ Hooks installed to git repository at .
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Next we need to add our hook to the appropriate hook directory:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+echo \(aq#!/usr/bin/env bash\(aq > .git/hooks/pre\-commit.d/hook.sh
+echo \(aqecho "Hello!"; exit 1\(aq >> .git/hooks/pre\-commit.d/hook.sh
+chmod +x .git/hooks/pre\-commit.d/hook.sh
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Now when we commit to our repository, we will see the word \(aqHello!\(aq and see
+that the commit was prevented due to a failing pre\-commit hook:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git commit \-m \(aqTesting...\(aq
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Produces the following output:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+✗ pre\-commit.d/hook.sh exit code 1, output:
+  Hello!
+Ran 1 pre\-commit hooks, 1 failed
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+You can place any number of hooks into the \fBpre\-commit.d\fP directory, and they
+will all be executed. \fBgit\-rook\fP will create these \fB<hook\-name>.d\fP
+directories for each hook that git supports. See the
+\fI\%git documention\fP
+for a full list of hooks.
+.sp
+In addition to the built\-in git hooks, \fBgit rook\fP also supports the
+\fBpost\-init\fP hook when running \fBgit rook \-\-init\fP\&. This hook allows you to
+run commands when initializing a git repository (either to create one or to
+sync template files into a repository).
+.SS Installing git\-rook
+.sp
+You can try using \fBmake install\fP to install \fBgit\-rook\fP\&. \fBgit\-rook\fP is
+installed by copying \fBgit\-rook\fP to somewhere in your \fB$PATH\fP\&. This will
+then allow you to run \fBgit rook\fP, enabling the use of managed git hooks.
+.sp
+You can also install the man page for \fBgit\-rook\fP by copying \fBgit\-rook.1\fP
+to a directory in one of your configured man paths
+(e.g., \fB/usr/local/share/man/man1\fP).
+.SH OPTIONS
+.SS Operation Modes
+.sp
+Each of these options must appear first on the command line.
+.INDENT 0.0
+.TP
+.B \-\-install
+Installs \fBgit\-rook\fP hooks for a repository or git template.
+.TP
+.B \-\-init
+Copies template\-directory template into repo\-directory and runs the
+post\-init hook.
+.TP
+.B \-\-run
+Runs a git hook
+.TP
+.B \-\-list
+Lists hooks installed the <target\-directory> (assumes current directory)
+.UNINDENT
+.SS Options for \fB\-\-install\fP
+.INDENT 0.0
+.TP
+.B \-f\fP,\fB  \-\-force
+Overwrites any existing hooks found in \fBrepo\-directory\fP or
+\fBtemplate\-directory\fP
+.UNINDENT
+.INDENT 0.0
+.TP
+.B <target\-directory>
+Installs git hooks to the given \fBtarget\-directory\fP\&. The current directory
+is assumed if no \fBtarget\-directory\fP is not provided.
+.sp
+If \fBtarget\-directory\fP contains a \fB\&.git\fP directory, hooks will be
+installed to \fB<target\-directory>/.git/hooks\fP\&. Otherwise,
+\fBtarget\-directory\fP will be created and hooks will be installed to
+\fB\(ga<target\-directory>/hooks\fP\&. This is useful for creating git templates.
+.UNINDENT
+.SS Examples
+.sp
+Install hooks for a repository:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-install \-f /path/to/my/repo
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Install hooks for a repository and overwrite any existing hooks:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-install \-f /path/to/my/repo
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Create a git template with \fBgit\-rook\fP hooks configured:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-install ~/.git\-templates/my\-template
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Create a git template with \fBgit\-rook\fP hooks configured and overwrite
+any existing hooks:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-install \-f ~/.git\-templates/my\-template
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SS Options for \fB\-\-init\fP
+.INDENT 0.0
+.TP
+.B \-f\fP,\fB  \-\-force
+Overwrites any existing hooks found in \fBrepo\-directory\fP or
+\fBtemplate\-directory\fP
+.TP
+.B \-n\fP,\fB  \-\-no\-remember
+Prevent \fB\-\-init\fP from remembering the \fB\-\-template\fP by passing the
+\fB\-n\fP option. \fB\-\-init\fP will by default remember the provided
+\fB\-\-template\fP by saving it in the \fBinit.templateDir\fP git configuration
+value for the repo.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B <template\-directory>
+Copies the contents of the provided template into the git repository. Any
+scripts found in the \fBhooks/post\-init.d/\fP directory of the template will
+be executed. This value is optional if \fB$GIT_TEMPLATE_DIR\fP is set or the
+\fBinit.templateDir\fP git configuration value is set.
+.UNINDENT
+.SS Examples
+.sp
+Use a git template with a new git repository:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+mkdir /tmp/test\-repo && cd /tmp/test\-repo
+git rook \-\-init ~/.git\-templates/my\-template
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Update an existing git repository with any changes made in a template:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+# Runs any found post\-init.d/ hooks
+git rook \-\-init ~/.git\-templates/my\-template
+
+# Same as above, but does not run the hooks
+git init \-\-template ~/.git\-templates/my\-template
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SS Options for \fB\-\-run\fP
+.INDENT 0.0
+.TP
+.B <hook\-name>
+Name of the hook to run
+.TP
+.B <args>...
+Any arguments provided after the hook name will be forwarded to the hook
+.UNINDENT
+.SS Examples
+.sp
+Run the \fBpost\-init\fP hook on demand:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-run post\-init
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SS Options for \fB\-\-list\fP
+.INDENT 0.0
+.TP
+.B <target\-directory>
+Directory of a git repository or Git template.
+.UNINDENT
+.SS Examples
+.sp
+List hooks in a repository:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-list
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+List hooks in a Git template:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-list ~/.git\-templates/my\-template
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SH USING TEMPLATES
+.sp
+You can use git templates in order to pre\-install \fBgit\-rook\fP for a
+repository. When initializing a git repository or cloning a git repository, you
+can provide the \fB\-\-template\fP option with the path to a template directory on
+disk. The contents of this directory will then be copied to \fB$GIT_DIR\fP
+(typically \fB\&.git/\fP) after it is created.
+.sp
+First you\(aqll need to create a template directory. This can be done with
+\fBgit rook \-\-install <template\-directory>\fP:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+git rook \-\-install ~/.git\-templates/my\-template
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+Next you\(aqll need to run the following command to initialize the git repository
+and install the template:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+mkdir /tmp/test\-repo && cd /tmp/test\-repo
+git rook \-\-init ~/.git\-templates/my\-template
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.sp
+\fBgit rook \-\-init <template\-directory>\fP is the same as running
+\fBgit init \-\-template\fP, but \fBgit rook \-\-init\fP will run any \fBpost\-init.d/\fP
+hooks that might be installed in the provided template. This allows you to
+execute custom commands when installing a template to a git repository.
+.sp
+Please note that you can run \fBgit init\fP on a repository that has already been
+initialized. From the \fI\%git documentation\fP:
+.INDENT 0.0
+.INDENT 3.5
+Running git init in an existing repository is safe. It will not overwrite
+things that are already there. The primary reason for rerunning git init is
+to pick up newly added templates (or to move the repository to another
+place if \fB\-\-separate\-git\-dir\fP is given).
+.UNINDENT
+.UNINDENT
+.SH SKIPPING HOOKS
+.sp
+You can skip one or more hooks using the \fBSKIP\fP variable and providing it a
+comma separated list of hook filenames to skip. For example, if you have a
+hook named "foo.sh" and "bar" that you wish to skip for a git commit, you can
+run the following command:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+SKIP=foo.sh,bar git commit \-m \(aqTesting...\(aq
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.SH ABOUT
+.INDENT 0.0
+.IP \(bu 2
+Author: Michael Dowling <\fI\%https://github.com/mtdowling\fP>
+.IP \(bu 2
+Issue tracker: This project\(aqs source code and issue tracker can be found at
+\fI\%https://github.com/mtdowling/git\-rook\fP
+.UNINDENT
+.\" Generated by docutils manpage writer.
+.

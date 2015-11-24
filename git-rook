@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+# Copyright (c) 2015 Michael Dowling <https://github.com/mtdowling>
+# Homepage and license at https://github.com/mtdowling/git-rook
+declare -i FAIL_COUNT=0 FORCE=0 REMEMBER=1
+declare COMMAND="$1" DIRECTORY HOOK_NAME NONGIT_OK=1 OPTIONS_SPEC="\
+git rook --install [-f|--force] [<target-directory>]
+git rook --init [-f|--force] [-n|--no-remember] [<template-directory>]
+git rook --run <hook-name> <hook-args>...
+git rook --list [<target-directory>]
+
+Installs the git rook into a repo, sync templates with a repo, or runs a hook
+--
+install        Executes the git-rook install command. Must be the first argument
+init           Copies template-directory template into repo-directory and runs the post-init hook
+run            Runs a git hook
+list           Lists hooks installed the <target-directory> (assumes current directory)
+f,force        Set to 1 to force overwrite existing hooks if present
+n,no-remember  Do not remembers the --init --template for subsequent --init calls"
+
+. "$(git --exec-path)/git-sh-setup"
+
+fail() {
+  echo -e " $(tput setaf 1)✗ $1$(tput sgr 0)"
+}
+
+is_hook_skipped() {
+  case $SKIP in
+    # Only value, starts with, ends with, or in the middle...
+    "$1"|*,"$1"|"$1",*|*,"$1",*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+run_hook() {
+  local output status id display_name hook_name="$1"
+  local hook_dir="$(git_repo_root)/hooks/${hook_name}.d"
+  # Shift off the hook name so we can pass all other options to each hook.
+  shift
+  # Set nullglob to allow globbing over empty directories.
+  shopt -s nullglob
+  for file in "${hook_dir}"/*; do
+    id=$(basename $file)
+    if is_hook_skipped "${id}"; then
+      echo " ! (${hook_name}) skipping ${id}"
+    else
+      output="$($file "$@" 2>&1)"
+      status="$?"
+      if [ $status -eq 0 ]; then
+        echo " ✓ (${hook_name}) ${id}"
+      else
+        fail "(${hook_name}) ${id} exit code ${status}, output:"
+        echo "${output}" | sed 's/^/   /'
+        FAIL_COUNT+=1
+      fi
+    fi
+  done
+  [ "${FAIL_COUNT}" -gt 0 ] && exit 1 || exit 0
+}
+
+install_hook() {
+  local -r name="$1" dir="$2"
+  local -r dest="${dir}/hooks/${name}"
+  if [ -f "${dest}" ]; then
+    [ "${FORCE}" -eq 0 ] && fail "${dest} exists (use -f to force)" && exit 1
+    echo " ! Overwriting ${dest}"
+  fi
+  mkdir -p "${dest}.d" || die "Unable to create hook.d directory: ${dest}.d"
+  echo "#!/usr/bin/env bash" > "${dest}" \
+    && echo "git rook --run ${name} \"\${@}\"" >> "${dest}" \
+    && chmod +x "${dest}" \
+    || die "Unable to create hook: ${dest}"
+}
+
+install_all_hooks() {
+  local -r repo="$1"
+  local hooks=(applypatch-msg pre-applypatch post-applypatch pre-commit \
+      prepare-commit-msg commit-msg post-commit pre-rebase post-checkout \
+      post-merge pre-push pre-receive update post-receive post-update \
+      push-to-checkout pre-auto-gc post-rewrite post-init)
+  for hook in "${hooks[@]}"; do
+    install_hook "${hook}" "${repo}"
+  done
+}
+
+git_repo_root() {
+  git rev-parse --git-dir || die "Not in a Git repository"
+}
+
+parse_options() {
+  while [ "$#" -ne 0 ]; do
+    case "$1" in
+      -f) FORCE=1 ;;
+      -n) REMEMBER=0 ;;
+      --) shift; break ;;
+    esac
+    shift
+  done
+  [ "$#" -ne 0 ] && DIRECTORY="$1"
+}
+
+resolve_directory() {
+  [ -z "${DIRECTORY}" ] && DIRECTORY=$(git_repo_root)
+  [ -d "${DIRECTORY}"/.git ] && DIRECTORY="${DIRECTORY}/.git"
+}
+
+# Shift off COMMAND
+shift
+case "${COMMAND:---}" in
+  --run)
+    shift; HOOK_NAME="$1"; shift 2
+    run_hook "${HOOK_NAME}" "$@"
+    ;;
+  --init)
+    GIT_DIR=$(git_repo_root)
+    parse_options "$@"
+    # Save the template if the -r option is provided.
+    [ ! -z "${DIRECTORY}" ] && [ "${REMEMBER}" -eq 1 ] \
+      && git config --replace-all init.templateDir "${DIRECTORY}"
+    # Use the same rules as 'git init': https://git-scm.com/docs/git-init
+    [ -z "${DIRECTORY}" ] && DIRECTORY="${GIT_TEMPLATE_DIR}"
+    [ -z "${DIRECTORY}" ] && DIRECTORY="$(git config --get init.templateDir)"
+    if [ ! -z "${DIRECTORY}" ]; then
+      say "syncing with Git template in ${DIRECTORY}"
+      git init --template "${DIRECTORY}"
+      if [ "${FORCE}" -ne 0 ]; then
+        say "force copying hooks from template into repo"
+        cp -R "${DIRECTORY}"/hooks/* "${GIT_DIR}/hooks/"
+      fi
+    fi
+    run_hook 'post-init'
+    ;;
+  --install)
+    parse_options "$@"; resolve_directory
+    mkdir -p "${DIRECTORY}" || die "Could not create directory: ${DIRECTORY}"
+    install_all_hooks "${DIRECTORY}"
+    echo -e " ✓ git rook installed hooks at ${DIRECTORY}\n"
+    if [ "${DIRECTORY}" != $(git_repo_root) ]; then
+      echo -e "Add this template to a new or existing repo using:\n"
+      echo -e "    git rook --init ${DIRECTORY}\n"
+      echo -e "Make this the default template for all Git repos using:\n"
+      echo -e "    git config --global --replace-all init.templateDir ${DIRECTORY}\n"
+    fi
+    ;;
+  --list)
+    parse_options "$@"; resolve_directory
+    for file in ${DIRECTORY}/hooks/**/*; do
+      echo "${file}"
+    done
+    ;;
+  -h|--help|--) "$0" -h; exit 0 ;;
+  *) die "Unknown option: ${option}" ;;
+esac
