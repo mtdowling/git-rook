@@ -9,7 +9,7 @@ setup_repo() {
   delete_repo
   mkdir -p $TEST_REPO
   cd $TEST_REPO
-  git init
+  git init --template bogus_template_dir_that_doesnt_exist
   cd -
 }
 
